@@ -1,0 +1,15 @@
+<!-- strings.xml -->
+<resources>
+    <string name="app_name">testApp001</string>
+    <string name="scan_barcode_prompt">バーコードをスキャンしてください</string> <!-- これは以前追加したもの -->
+
+    <!-- ▼▼▼ 以下の文字列リソースが不足している可能性があります ▼▼▼ -->
+    <string name="camera_permission_granted">カメラパーミッションが許可されました</string>
+    <string name="camera_permission_denied">カメラパーミッションが拒否されました。この機能は利用できません。</string>
+    <string name="camera_permission_already_granted">カメラパーミッションは既に許可されています</string>
+    <string name="camera_permission_rationale">バーコードをスキャンするためには、カメラの許可が必要です。</string>
+    <string name="camera_initializing">カメラを初期化しています...</string>
+    <string name="barcode_scan_result_format">スキャン結果: %1$s</string>
+
+    <!-- ▲▲▲ ここまで ▲▲▲ -->
+</resources>
