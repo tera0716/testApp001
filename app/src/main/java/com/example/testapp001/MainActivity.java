@@ -68,6 +68,10 @@ public class MainActivity extends AppCompatActivity {
     private static final long UI_UPDATE_INTERVAL_MILLIS = 2000; // UI更新間隔 (例: 2秒)
     // ▲▲▲ ここまで追加 ▲▲▲
 
+    // ▼▼▼ 以下を追加 ▼▼▼
+    private String lastDisplayedBarcodeValue = null; // 最後にUIに表示したバーコードの値
+    // ▲▲▲ ここまで追加 ▲▲▲
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -183,79 +187,44 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // ★追加: バーコード処理メソッド
+    // 提案した修正案の processBarcode メソッドの開始
     private void processBarcode(InputImage image, ImageProxy imageProxy) {
         barcodeScanner.process(image)
                 .addOnSuccessListener(new OnSuccessListener<List<Barcode>>() {
                     @Override
                     public void onSuccess(List<Barcode> barcodes) {
                         if (barcodes.isEmpty()) {
-                            // Log.v(TAG, "No barcode found"); // 頻繁に出るのでVERBOSEレベルかコメントアウト
-                        } else {
-
-                            // ▼▼▼ UI更新頻度制御ロジックを追加 ▼▼▼
-                            long currentTimeMillis = System.currentTimeMillis();
-                            if (currentTimeMillis - lastUiUpdateTimeMillis < UI_UPDATE_INTERVAL_MILLIS) {
-                                // 指定した間隔が経過していなければ、UI更新はスキップ
-                                // for (Barcode barcode : barcodes) { // デバッグ用にスキップ時のログを残しても良い
-                                //     Log.d(TAG, "Skipping UI update for: " + barcode.getDisplayValue() + " | Time since last UI update: " + (currentTimeMillis - lastUiUpdateTimeMillis) + "ms");
-                                // }
-                                return; // 今回の onSuccess でのUI更新処理はここまで
+                            // (修正案の isEmpty の中身)
+                            if (lastDisplayedBarcodeValue != null) {
+                                Log.d(TAG, "No barcode detected. Resetting lastDisplayedBarcodeValue.");
+                                lastDisplayedBarcodeValue = null;
                             }
-                            // ▲▲▲ UI更新頻度制御ロジックここまで ▲▲▲
-
-                            Barcode firstBarcode = barcodes.get(0); // 最初のバーコードを取得
-
-                            String rawValue = firstBarcode.getRawValue();
-                            String displayValue = firstBarcode.getDisplayValue();
-                            int valueType = firstBarcode.getValueType();
-
-                            // UI更新を行うタイミングでのみ詳細ログを出すようにする
-                            Log.d(TAG, "Processing for UI: Raw Value = " + rawValue + ", Display Value = " + displayValue + ", Type = " + valueTypeToString(valueType));
-
-                            lastUiUpdateTimeMillis = currentTimeMillis; // UI更新時刻を記録
-
-                            runOnUiThread(() -> {
-                                // ▼▼▼ ここを修正 ▼▼▼
-                                // String formattedResult = ContextCompat.getString(R.string.barcode_scan_result_format, displayValue); // 誤り
-                                String formattedResult = getString(R.string.barcode_scan_result_format, displayValue); // 正しい (Activity内)
-                                // または MainActivity.this.getString(R.string.barcode_scan_result_format, displayValue); でも可
-                                // ▲▲▲ ここまで修正 ▲▲▲
-                                barcodeResultTextView.setText(formattedResult);
-                            });
-
-
-
-
-
-
-
-
-
-
-                            //for (Barcode barcode : barcodes) {
-                            //    String rawValue = barcode.getRawValue();
-                            //    String displayValue = barcode.getDisplayValue();
-                            //    int valueType = barcode.getValueType();
-
-                                // ログに出力
-                            //    Log.d(TAG, "Barcode detected: Raw Value = " + rawValue + ", Display Value = " + displayValue + ", Type = " + valueTypeToString(valueType));
-
-
-                                // UI (TextView) に表示 (メインスレッドで実行)
-                            //    runOnUiThread(() -> {
-                            //        barcodeResultTextView.setText("スキャン結果:\n" + displayValue);
-                                    // Toast.makeText(MainActivity.this, "バーコード検出: " + displayValue, Toast.LENGTH_SHORT).show(); // 必要に応じて
-                            //    });
-
-                                // ★重要: 最初のバーコードを検出したら、さらなる処理を止めるか、
-                                // スキャナを一時停止/再開するロジックが必要な場合がある。
-                                // ここでは簡単のため、最初の1つを表示したら返る。
-                                // 連続スキャンをしたい場合は、このreturnを削除し、
-                                // UIの更新が速すぎないように制御が必要。
-                                //return;
-
+                            return;
                         }
 
+                        // (修正案のバーコードが検出された場合の中身)
+                        Barcode firstBarcode = barcodes.get(0);
+                        String displayValue = firstBarcode.getDisplayValue();
+
+                        if (displayValue != null && displayValue.equals(lastDisplayedBarcodeValue)) {
+                            return;
+                        }
+
+                        long currentTimeMillis = System.currentTimeMillis();
+                        if (currentTimeMillis - lastUiUpdateTimeMillis < UI_UPDATE_INTERVAL_MILLIS) {
+                            return;
+                        }
+
+                        // (修正案のUI更新処理)
+                        String rawValue = firstBarcode.getRawValue();
+                        int valueType = firstBarcode.getValueType();
+                        Log.d(TAG, "Processing for UI (New or after interval): Raw Value = " + rawValue + ", Display Value = " + displayValue + ", Type = " + valueTypeToString(valueType));
+                        lastUiUpdateTimeMillis = currentTimeMillis;
+                        lastDisplayedBarcodeValue = displayValue;
+                        runOnUiThread(() -> {
+                            String formattedResult = getString(R.string.barcode_scan_result_format, displayValue);
+                            barcodeResultTextView.setText(formattedResult);
+                        });
                     }
                 })
                 .addOnFailureListener(new OnFailureListener() {
@@ -270,14 +239,10 @@ public class MainActivity extends AppCompatActivity {
                 .addOnCompleteListener(new OnCompleteListener<List<Barcode>>() {
                     @Override
                     public void onComplete(@NonNull Task<List<Barcode>> task) {
-                        // ★重要: 画像の処理が終わったら、必ず ImageProxy を閉じる
                         imageProxy.close();
                     }
                 });
-    }
-
-    // ★追加: バーコードタイプを文字列に変換するヘルパーメソッド (任意)
-    private String valueTypeToString(int valueType) {
+    }    private String valueTypeToString(int valueType) {
         switch (valueType) {
             case Barcode.TYPE_CONTACT_INFO: return "CONTACT_INFO";
             case Barcode.TYPE_EMAIL: return "EMAIL";
