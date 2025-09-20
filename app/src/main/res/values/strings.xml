@@ -12,4 +12,5 @@
     <string name="barcode_scan_result_format">スキャン結果: %1$s</string>
 
     <!-- ▲▲▲ ここまで ▲▲▲ -->
+    <string name="open_url_button_text">URLを開く</string>
 </resources>

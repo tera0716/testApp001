@@ -1,25 +1,29 @@
 package com.example.testapp001;
 
 import android.Manifest;
-import android.annotation.SuppressLint; // ★追加
+import android.annotation.SuppressLint;
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.Point; // ★追加
-import android.graphics.Rect; // ★追加
-import android.media.Image; // ★追加
+import android.media.Image;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
-import android.util.Size; // ★追加
+import android.util.Patterns;
+import android.util.Size;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull; // ★追加
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.CameraSelector;
-import androidx.camera.core.ImageAnalysis; // ★追加
-import androidx.camera.core.ImageProxy; // ★追加
+import androidx.camera.core.ImageAnalysis;
+import androidx.camera.core.ImageProxy;
 import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
@@ -28,27 +32,30 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import com.google.android.gms.tasks.OnCompleteListener; // ★追加
-import com.google.android.gms.tasks.OnFailureListener; // ★追加
-import com.google.android.gms.tasks.OnSuccessListener; // ★追加
-import com.google.android.gms.tasks.Task; // ★追加
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.mlkit.vision.barcode.BarcodeScanner; // ★追加
-import com.google.mlkit.vision.barcode.BarcodeScannerOptions; // ★追加
-import com.google.mlkit.vision.barcode.BarcodeScanning; // ★追加
-import com.google.mlkit.vision.barcode.common.Barcode; // ★追加
-import com.google.mlkit.vision.common.InputImage; // ★追加
+import com.google.mlkit.vision.barcode.BarcodeScanner;
+import com.google.mlkit.vision.barcode.BarcodeScannerOptions;
+import com.google.mlkit.vision.barcode.BarcodeScanning;
+import com.google.mlkit.vision.barcode.common.Barcode;
+import com.google.mlkit.vision.common.InputImage;
 
-import java.util.List; // ★追加
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-
 public class MainActivity extends AppCompatActivity {
+
+    private static final String TAG = "MainActivity";
 
     private PreviewView previewView;
     private TextView barcodeResultTextView;
+    private Button urlConfirmButton;
+
     private final ActivityResultLauncher<String> requestPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
                 if (isGranted) {
@@ -60,27 +67,25 @@ public class MainActivity extends AppCompatActivity {
             });
 
     private ExecutorService cameraExecutor;
-    private static final String TAG = "MainActivity";
-    private BarcodeScanner barcodeScanner; // ★追加: バーコードスキャナのインスタンス
+    private BarcodeScanner barcodeScanner;
 
-    // ▼▼▼ 以下を追加 ▼▼▼
-    private long lastUiUpdateTimeMillis = 0; // 最後にUIを更新した時刻
-    private static final long UI_UPDATE_INTERVAL_MILLIS = 2000; // UI更新間隔 (例: 2秒)
-    // ▲▲▲ ここまで追加 ▲▲▲
-
-    // ▼▼▼ 以下を追加 ▼▼▼
-    private String lastDisplayedBarcodeValue = null; // 最後にUIに表示したバーコードの値
-    // ▲▲▲ ここまで追加 ▲▲▲
+    // UI状態管理用の変数
+    private String currentDisplayedValue = null; // 現在TextViewに表示している実際の文字列
+    private String lastScannedValidUrl = null;   // 最後にスキャンされた有効な「純粋な」URL
+    private boolean isUrlButtonVisible = false; // ボタンが表示されるべき状態か (true=VISIBLE, false=INVISIBLE)
+    private long lastTextUpdateTimeMillis = 0;   // TextViewの最終更新時刻
+    private static final long TEXT_UPDATE_INTERVAL_MILLIS = 1000; // TextViewの更新間隔 (ミリ秒)
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
+        EdgeToEdge.enable(this); // 必要に応じて
         setContentView(R.layout.activity_main);
 
         previewView = findViewById(R.id.previewView);
         barcodeResultTextView = findViewById(R.id.barcodeResultTextView);
+        urlConfirmButton = findViewById(R.id.url_confirm_button);
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -88,27 +93,40 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
+        // ボタンの初期状態設定とクリックリスナー
+        // XML側で android:visibility="invisible" に設定されている前提
+        urlConfirmButton.setVisibility(View.INVISIBLE);
+        isUrlButtonVisible = false;
+
+        urlConfirmButton.setOnClickListener(v -> {
+            if (lastScannedValidUrl != null && !lastScannedValidUrl.isEmpty()) {
+                try {
+                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(lastScannedValidUrl));
+                    startActivity(intent);
+                } catch (ActivityNotFoundException e) {
+                    Toast.makeText(MainActivity.this, "対応するアプリが見つかりません。", Toast.LENGTH_SHORT).show();
+                } catch (Exception e) { // Uri.parseで発生しうる例外もキャッチ (例: 不正なURL形式)
+                    Toast.makeText(MainActivity.this, "URLの形式が正しくありません。", Toast.LENGTH_SHORT).show();
+                    Log.e(TAG, "Error parsing or viewing URL: " + lastScannedValidUrl, e);
+                }
+            } else {
+                Toast.makeText(MainActivity.this, "開けるURLがありません。", Toast.LENGTH_SHORT).show();
+            }
+        });
+
         requestCameraPermission();
         cameraExecutor = Executors.newSingleThreadExecutor();
 
-        // ★追加: バーコードスキャナの初期化
         BarcodeScannerOptions options =
                 new BarcodeScannerOptions.Builder()
                         .setBarcodeFormats(
-                                Barcode.FORMAT_QR_CODE,
-                                Barcode.FORMAT_AZTEC,
-                                Barcode.FORMAT_CODE_128, // 一般的なバーコード
-                                Barcode.FORMAT_EAN_13,   // 商品JANコード(13桁)
-                                Barcode.FORMAT_EAN_8,    // 商品JANコード(8桁)
-                                Barcode.FORMAT_UPC_A,    // アメリカの一般的な商品コード
-                                Barcode.FORMAT_UPC_E,
-                                Barcode.FORMAT_CODE_39,
-                                Barcode.FORMAT_CODE_93,
-                                Barcode.FORMAT_CODABAR,
-                                Barcode.FORMAT_DATA_MATRIX,
-                                Barcode.FORMAT_ITF,      // ITFコード(段ボール等)
-                                Barcode.FORMAT_PDF417
-                        ) // 必要に応じて他のフォーマットも追加
+                                Barcode.FORMAT_QR_CODE, Barcode.FORMAT_AZTEC,
+                                Barcode.FORMAT_CODE_128, Barcode.FORMAT_EAN_13,
+                                Barcode.FORMAT_EAN_8, Barcode.FORMAT_UPC_A,
+                                Barcode.FORMAT_UPC_E, Barcode.FORMAT_CODE_39,
+                                Barcode.FORMAT_CODE_93, Barcode.FORMAT_CODABAR,
+                                Barcode.FORMAT_DATA_MATRIX, Barcode.FORMAT_ITF,
+                                Barcode.FORMAT_PDF417)
                         .build();
         barcodeScanner = BarcodeScanning.getClient(options);
     }
@@ -126,7 +144,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    @SuppressLint("UnsafeOptInUsageError") // ★追加: ImageProxy.getImage() に必要
+    @SuppressLint("UnsafeOptInUsageError")
     private void startCamera() {
         ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(this);
 
@@ -139,110 +157,156 @@ public class MainActivity extends AppCompatActivity {
 
                 CameraSelector cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA;
 
-                // ★追加: ImageAnalysis ユースケースの設定
                 ImageAnalysis imageAnalysis = new ImageAnalysis.Builder()
-                        // ターゲット解像度を設定 (任意、デバイスやパフォーマンスに応じて調整)
-                        // 大きすぎるとパフォーマンスに影響し、小さすぎると認識精度が落ちる可能性
-                        .setTargetResolution(new Size(1280, 720)) // 例: 720p
-                        // バックプレッシャー戦略: 最新の画像のみを処理する
+                        .setTargetResolution(new Size(1280, 720))
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                         .build();
 
-                // ★追加: ImageAnalysis のアナライザーを設定
-                imageAnalysis.setAnalyzer(cameraExecutor, new ImageAnalysis.Analyzer() {
-                    @Override
-                    public void analyze(@NonNull ImageProxy imageProxy) {
-                        Image mediaImage = imageProxy.getImage();
-                        if (mediaImage != null) {
-                            InputImage image = InputImage.fromMediaImage(mediaImage, imageProxy.getImageInfo().getRotationDegrees());
-                            processBarcode(image, imageProxy); // ★変更: imageProxyも渡す
-                        } else {
-                            imageProxy.close(); // ★重要: mediaImageがnullでも必ずcloseする
-                        }
+                imageAnalysis.setAnalyzer(cameraExecutor, imageProxy -> { // ラムダ式で Analyzer を簡潔に
+                    Image mediaImage = imageProxy.getImage();
+                    if (mediaImage != null) {
+                        InputImage image = InputImage.fromMediaImage(mediaImage, imageProxy.getImageInfo().getRotationDegrees());
+                        processBarcode(image, imageProxy);
+                    } else {
+                        // mediaImageがnullでも、下流のonCompleteでimageProxy.close()が呼ばれるようにする
+                        // ここでcloseするとonCompleteが呼ばれない可能性があるため、何もしないか、
+                        // もし頻発するならログだけ出すなど。ただし、通常はnullにならないはず。
+                        // Log.w(TAG, "MediaImage was null in analyzer.");
+                        imageProxy.close(); // やはりここで閉じておく方が安全かもしれない
                     }
                 });
 
                 cameraProvider.unbindAll();
-                // ★変更: imageAnalysis を bindToLifecycle に追加
                 cameraProvider.bindToLifecycle(
                         this,
                         cameraSelector,
                         preview,
-                        imageAnalysis // ★追加
+                        imageAnalysis
                 );
 
-                barcodeResultTextView.setText(R.string.scan_barcode_prompt);
+                // カメラ起動時のUI初期化
+                runOnUiThread(() -> {
+                    barcodeResultTextView.setText(R.string.scan_barcode_prompt);
+                    currentDisplayedValue = getString(R.string.scan_barcode_prompt);
+                    lastScannedValidUrl = null;
+                    // isUrlButtonVisible は onCreate で false になっているので、
+                    // urlConfirmButton.setVisibility(View.INVISIBLE); も onCreate で設定済み
+                    // 再度呼ぶ必要は薄いが、念のため呼んでも害はない
+                    if (isUrlButtonVisible) { // 万が一trueになっていたら
+                        urlConfirmButton.setVisibility(View.INVISIBLE);
+                        isUrlButtonVisible = false;
+                    }
+                });
                 Log.d(TAG, "Camera preview and analysis started successfully.");
 
             } catch (ExecutionException | InterruptedException e) {
                 Log.e(TAG, "Use case binding failed", e);
-                Toast.makeText(this, "カメラの起動に失敗しました: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                barcodeResultTextView.setText("カメラ起動エラー");
-            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "カメラの起動に失敗しました: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    barcodeResultTextView.setText("カメラ起動エラー");
+                    currentDisplayedValue = "カメラ起動エラー";
+                    lastScannedValidUrl = null;
+                    if (urlConfirmButton != null) urlConfirmButton.setVisibility(View.INVISIBLE);
+                    isUrlButtonVisible = false;
+                });
+            } catch (Exception e) { // その他の予期せぬエラー
                 Log.e(TAG, "An unexpected error occurred during camera start", e);
-                Toast.makeText(this, "予期せぬエラーが発生しました: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                barcodeResultTextView.setText("予期せぬエラー");
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "予期せぬエラーが発生しました: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    barcodeResultTextView.setText("予期せぬエラー");
+                    currentDisplayedValue = "予期せぬエラー";
+                    lastScannedValidUrl = null;
+                    if (urlConfirmButton != null) urlConfirmButton.setVisibility(View.INVISIBLE);
+                    isUrlButtonVisible = false;
+                });
             }
         }, ContextCompat.getMainExecutor(this));
     }
 
-    // ★追加: バーコード処理メソッド
-    // 提案した修正案の processBarcode メソッドの開始
     private void processBarcode(InputImage image, ImageProxy imageProxy) {
         barcodeScanner.process(image)
-                .addOnSuccessListener(new OnSuccessListener<List<Barcode>>() {
-                    @Override
-                    public void onSuccess(List<Barcode> barcodes) {
-                        if (barcodes.isEmpty()) {
-                            // (修正案の isEmpty の中身)
-                            if (lastDisplayedBarcodeValue != null) {
-                                Log.d(TAG, "No barcode detected. Resetting lastDisplayedBarcodeValue.");
-                                lastDisplayedBarcodeValue = null;
+                .addOnSuccessListener(barcodes -> {
+                    if (barcodes.isEmpty()) {
+                        if (lastScannedValidUrl != null) {
+                            lastScannedValidUrl = null;
+                            if (isUrlButtonVisible) {
+                                runOnUiThread(() -> urlConfirmButton.setVisibility(View.INVISIBLE));
+                                isUrlButtonVisible = false;
                             }
-                            return;
                         }
+                        // プロンプトに戻すなどの処理はここで行わない (連続スキャン時にチラつくため)
+                        // currentDisplayedValue は以前のまま
+                        return;
+                    }
 
-                        // (修正案のバーコードが検出された場合の中身)
-                        Barcode firstBarcode = barcodes.get(0);
-                        String displayValue = firstBarcode.getDisplayValue();
+                    Barcode firstBarcode = barcodes.get(0);
+                    String rawValue = firstBarcode.getRawValue();
+                    String displayValue = firstBarcode.getDisplayValue();
 
-                        if (displayValue != null && displayValue.equals(lastDisplayedBarcodeValue)) {
-                            return;
-                        }
+                    if (displayValue == null && rawValue == null) {
+                        return; // 処理できる値がない
+                    }
 
-                        long currentTimeMillis = System.currentTimeMillis();
-                        if (currentTimeMillis - lastUiUpdateTimeMillis < UI_UPDATE_INTERVAL_MILLIS) {
-                            return;
-                        }
+                    String valueToDisplay = (displayValue != null) ? displayValue : rawValue; // 表示にはdisplayValue優先
 
-                        // (修正案のUI更新処理)
-                        String rawValue = firstBarcode.getRawValue();
-                        int valueType = firstBarcode.getValueType();
-                        Log.d(TAG, "Processing for UI (New or after interval): Raw Value = " + rawValue + ", Display Value = " + displayValue + ", Type = " + valueTypeToString(valueType));
-                        lastUiUpdateTimeMillis = currentTimeMillis;
-                        lastDisplayedBarcodeValue = displayValue;
+                    boolean isCurrentScanUrl = (firstBarcode.getValueType() == Barcode.TYPE_URL) ||
+                            (rawValue != null && Patterns.WEB_URL.matcher(rawValue).matches()) ||
+                            (displayValue != null && Patterns.WEB_URL.matcher(displayValue).matches());
+
+                    long currentTimeMillis = System.currentTimeMillis();
+
+                    // TextViewの更新ロジック
+                    if (!valueToDisplay.equals(currentDisplayedValue) &&
+                            (currentTimeMillis - lastTextUpdateTimeMillis > TEXT_UPDATE_INTERVAL_MILLIS ||
+                                    currentDisplayedValue == null ||
+                                    currentDisplayedValue.equals(getString(R.string.scan_barcode_prompt)))) {
                         runOnUiThread(() -> {
-                            String formattedResult = getString(R.string.barcode_scan_result_format, displayValue);
+                            String formattedResult = getString(R.string.barcode_scan_result_format, valueToDisplay);
                             barcodeResultTextView.setText(formattedResult);
                         });
+                        currentDisplayedValue = valueToDisplay;
+                        lastTextUpdateTimeMillis = currentTimeMillis;
+                    }
+
+                    // ボタンの表示/非表示ロジック
+                    if (isCurrentScanUrl) {
+                        // URLの場合
+                        // Intentで使う純粋なURLを lastScannedValidUrl にセット
+                        // rawValue があればそれを優先 (より加工されていないデータのため)
+                        lastScannedValidUrl = (rawValue != null && Patterns.WEB_URL.matcher(rawValue).matches()) ? rawValue : displayValue;
+
+                        if (!isUrlButtonVisible) {
+                            runOnUiThread(() -> urlConfirmButton.setVisibility(View.VISIBLE));
+                            isUrlButtonVisible = true;
+                        }
+                    } else {
+                        // URLではない場合
+                        lastScannedValidUrl = null;
+                        if (isUrlButtonVisible) {
+                            runOnUiThread(() -> urlConfirmButton.setVisibility(View.INVISIBLE));
+                            isUrlButtonVisible = false;
+                        }
                     }
                 })
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        Log.e(TAG, "Barcode scanning failed", e);
-                        runOnUiThread(() -> {
-                            Toast.makeText(MainActivity.this, "バーコードスキャン失敗: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                        });
-                    }
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Barcode scanning failed", e);
+                    runOnUiThread(() -> {
+                        Toast.makeText(MainActivity.this, "バーコードスキャン失敗: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        lastScannedValidUrl = null;
+                        if (isUrlButtonVisible) {
+                            if (urlConfirmButton != null) urlConfirmButton.setVisibility(View.INVISIBLE);
+                            isUrlButtonVisible = false;
+                        }
+                    });
                 })
-                .addOnCompleteListener(new OnCompleteListener<List<Barcode>>() {
-                    @Override
-                    public void onComplete(@NonNull Task<List<Barcode>> task) {
-                        imageProxy.close();
-                    }
+                .addOnCompleteListener(task -> {
+                    // imageProxy.close() はここで行うのが CameraX の推奨
+                    imageProxy.close();
                 });
-    }    private String valueTypeToString(int valueType) {
+    }
+
+    // valueTypeToString メソッドは、デバッグログ用などに残しておいても良いでしょう
+    private String valueTypeToString(int valueType) {
         switch (valueType) {
             case Barcode.TYPE_CONTACT_INFO: return "CONTACT_INFO";
             case Barcode.TYPE_EMAIL: return "EMAIL";
@@ -256,10 +320,9 @@ public class MainActivity extends AppCompatActivity {
             case Barcode.TYPE_GEO: return "GEO";
             case Barcode.TYPE_CALENDAR_EVENT: return "CALENDAR_EVENT";
             case Barcode.TYPE_DRIVER_LICENSE: return "DRIVER_LICENSE";
-            default: return "UNKNOWN_TYPE";
+            default: return "UNKNOWN_TYPE (" + valueType + ")";
         }
     }
-
 
     @Override
     protected void onDestroy() {
@@ -267,9 +330,8 @@ public class MainActivity extends AppCompatActivity {
         if (cameraExecutor != null) {
             cameraExecutor.shutdown();
         }
-        // ★追加: スキャナのリソースを解放 (任意だが推奨)
         if (barcodeScanner != null) {
-            barcodeScanner.close();
+            barcodeScanner.close(); // リソース解放
         }
     }
 }
