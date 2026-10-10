@@ -1,16 +1,87 @@
 <!-- strings.xml -->
 <resources>
     <string name="app_name">testApp001</string>
-    <string name="scan_barcode_prompt">バーコードをスキャンしてください</string> <!-- これは以前追加したもの -->
+    <string name="scan_barcode_prompt">バーコードをスキャンしてください</string>
 
-    <!-- ▼▼▼ 以下の文字列リソースが不足している可能性があります ▼▼▼ -->
+    <!-- カメラパーミッション -->
     <string name="camera_permission_granted">カメラパーミッションが許可されました</string>
     <string name="camera_permission_denied">カメラパーミッションが拒否されました。この機能は利用できません。</string>
     <string name="camera_permission_already_granted">カメラパーミッションは既に許可されています</string>
     <string name="camera_permission_rationale">バーコードをスキャンするためには、カメラの許可が必要です。</string>
-    <string name="camera_initializing">カメラを初期化しています...</string>
-    <string name="barcode_scan_result_format">スキャン結果: %1$s</string>
 
-    <!-- ▲▲▲ ここまで ▲▲▲ -->
+    <!-- スキャン結果 -->
+    <string name="barcode_scan_result_format">スキャン結果: %1$s</string>
     <string name="open_url_button_text">URLを開く</string>
-</resources>
+
+    <!-- エラーメッセージ -->
+    <string name="error_no_url_available">開けるURLがありません。</string>
+    <string name="error_no_app_for_url">対応するアプリが見つかりません。</string>
+    <string name="error_invalid_url">URLの形式が正しくありません。</string>
+    <string name="error_camera_start">カメラの起動に失敗しました: %1$s</string>
+    <string name="error_camera_start_short">カメラ起動エラー</string>
+    <string name="error_unexpected">予期せぬエラーが発生しました: %1$s</string>
+    <string name="error_unexpected_short">予期せぬエラー</string>
+    <string name="error_barcode_scan_failed">バーコードスキャン失敗: %1$s</string>
+
+    <!-- ===== 棚卸: 版と棚の設定 ===== -->
+    <string name="setup_title">部署・棚卸日・棚名</string>
+    <string name="setup_note">読む前にこの3つを決めます。棚卸日は Web の版と同じにしてください。違うと読んでもどこにも出てきません。</string>
+    <string name="setup_pst">部署コード</string>
+    <string name="setup_pst_hint">例 3（YOKOTE）</string>
+    <string name="setup_ymd">棚卸日（版）</string>
+    <string name="setup_ymd_hint">2026-09-05</string>
+    <string name="setup_today">今日</string>
+    <string name="setup_tana">棚名</string>
+    <string name="setup_tana_hint">例 A-12</string>
+    <string name="setup_save">この設定で読みはじめる</string>
+    <string name="setup_err_pst">★ 部署コードを入れてください</string>
+    <string name="setup_err_ymd">★ 棚卸日を 2026-09-05 の形で入れてください</string>
+    <string name="setup_err_tana">★ 棚名を入れてください</string>
+    <string name="setup_warn_ymd">★ 棚卸日が今日から %1$d 日離れています。合っていますか</string>
+    <string name="setup_ok">OK  %1$s\nこの棚で読んだ件数: %2$d 件</string>
+    <string name="setup_cant_save">3つとも入れてください</string>
+    <string name="setup_saved">設定しました: %1$s</string>
+
+    <!-- ===== 棚卸: 溜まっている読み取り ===== -->
+    <string name="list_title">溜まっている読み取り</string>
+    <string name="list_summary">全部 %1$d 件 / 未送信 %2$d 件（表示 %3$d 件）</string>
+    <string name="list_filter_unsent">未送信だけ</string>
+    <string name="list_filter_all">全部を見る</string>
+    <string name="list_copy">タグ番号をコピー</string>
+    <string name="list_hint">1件を長押しすると消せます（読み間違いの取り消し）。コピーしたものは Web の「一括入力」に貼れます。</string>
+    <string name="list_row">%1$s\n　部署%2$d / %3$s / %4$s / %5$s / %6$s</string>
+    <string name="list_sent">送信済</string>
+    <string name="list_unsent">未送信</string>
+    <string name="list_nothing">溜まっているものがありません</string>
+    <string name="list_copied">%1$d 件をコピーしました</string>
+    <string name="list_copy_failed">コピーできませんでした</string>
+    <string name="list_delete_title">この読み取りを消しますか</string>
+    <string name="list_delete_msg">タグ %1$s\n棚 %2$s\n読んだ時刻 %3$s</string>
+    <string name="list_delete_ok">消す</string>
+    <string name="list_deleted">%1$s を消しました</string>
+
+    <!-- ===== 棚卸: 読み取り画面 ===== -->
+    <string name="scan_header">%1$s　／　この棚 %2$d 件</string>
+    <string name="scan_header_no_setting">★ 先に部署・棚卸日・棚名を決めてください</string>
+    <string name="scan_btn_setup">設定</string>
+    <string name="scan_btn_list">一覧 (%1$d)</string>
+    <string name="scan_saved">%1$s を記録（この棚 %2$d 件）</string>
+    <string name="scan_dup">%1$s はこの棚で既に読んでいます</string>
+    <string name="scan_not_tag">タグ番号として読めません: %1$s</string>
+    <string name="scan_no_setting">先に設定してください</string>
+
+    <!-- ===== 棚卸: 照会（商品情報） ===== -->
+    <string name="login_title">棚卸アプリにログイン</string>
+    <string name="login_status">%1$s
+ここでログインすると、読んだタグの商品情報が出るようになります。</string>
+    <string name="login_done">ログインしました</string>
+    <string name="login_need_https">★ https でないと、ログインが平文で流れます</string>
+    <string name="scan_btn_login">ログイン</string>
+    <string name="scan_btn_logged_in">ログイン済</string>
+    <string name="lookup_checking">%1$s を照会中…</string>
+    <string name="lookup_offline">%1$s（照会できません・記録はしました）</string>
+    <string name="lookup_need_login">%1$s（ログインすると商品情報が出ます）</string>
+    <string name="lookup_result">%1$s　%2$s</string>
+    <string name="lookup_dup">★ この版で既に読まれています: %1$s</string>
+    <string name="lookup_suggest">桁落ちの候補: %1$s</string>
+    <string name="scan_confirming">%1$s … もう一度読めたら確定します</string></resources>

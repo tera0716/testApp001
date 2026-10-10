@@ -6,6 +6,12 @@
     <uses-permission android:name="android.permission.CAMERA" />
 
     <uses-feature android:name="android.hardware.camera" android:required="true" />
+
+    <!-- 棚卸: 溜めた読み取りをサーバへ送るため（送信は電波が戻ったときだけ） -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- 棚卸: 読めたことを手に伝えるため（倉庫では音が聞こえないことがある） -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <!-- オートフォーカスも必須なら追加 -->
     <!-- <uses-feature android:name="android.hardware.camera.autofocus" android:required="true" /> -->
 
@@ -29,6 +35,24 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- 棚卸: 読む前に 部署・棚卸日・棚名 を決める -->
+        <activity
+            android:name=".SetupActivity"
+            android:exported="false"
+            android:label="@string/setup_title" />
+
+        <!-- 棚卸: 端末に溜まっている読み取りの一覧 -->
+        <!-- 棚卸: 既存のログイン画面を WebView で出して Cookie を借りる -->
+        <activity
+            android:name=".LoginActivity"
+            android:exported="false"
+            android:label="@string/login_title" />
+
+        <activity
+            android:name=".ScanListActivity"
+            android:exported="false"
+            android:label="@string/list_title" />
     </application>
 
 </manifest>

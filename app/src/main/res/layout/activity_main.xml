@@ -7,12 +7,56 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
+    <!-- 棚卸: いまの版と棚、この棚で読んだ件数 -->
+    <TextView
+        android:id="@+id/scanHeaderTextView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:padding="8dp"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- 棚卸: 設定と一覧へ -->
+    <LinearLayout
+        android:id="@+id/scanButtonBar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintTop_toBottomOf="@+id/scanHeaderTextView"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <Button
+            android:id="@+id/btn_setup"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="@string/scan_btn_setup" />
+
+        <Button
+            android:id="@+id/btn_list"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="@string/scan_btn_list" />
+
+        <Button
+            android:id="@+id/btn_login"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="@string/scan_btn_login" />
+    </LinearLayout>
+
     <!-- カメラのプレビューを表示するための PreviewView -->
     <androidx.camera.view.PreviewView
         android:id="@+id/previewView"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/scanButtonBar"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toTopOf="@+id/barcodeResultTextView"
@@ -30,7 +74,21 @@
     android:gravity="center"
     app:layout_constraintStart_toStartOf="parent"
     app:layout_constraintEnd_toEndOf="parent"
-    app:layout_constraintBottom_toTopOf="@+id/url_confirm_button" /> <!-- ★変更: ボタンの上に配置 -->
+    app:layout_constraintBottom_toTopOf="@+id/goodsTextView" /> <!-- ★変更: 商品情報の上に配置 -->
+
+    <!-- 棚卸: 照会で分かった商品情報（ブランド / 品番 / 色 / サイズ / 上代 と判定） -->
+    <TextView
+        android:id="@+id/goodsTextView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="8dp"
+        android:textSize="15sp"
+        android:gravity="center"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/url_confirm_button" />
 
     <!-- URL確認ボタン -->
     <Button
