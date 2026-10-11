@@ -26,6 +26,8 @@ public class LoginActivity extends AppCompatActivity {
 
     private WebView web;
     private TextView status;
+    /** 確認中に何度も走らせない */
+    private boolean checking = false;
 
     @Override
     protected void onCreate(Bundle b) {
@@ -74,14 +76,36 @@ public class LoginActivity extends AppCompatActivity {
         web.loadUrl(ServerConfig.loginUrl(this));
     }
 
+    /**
+     * ★ Cookie を取るだけでは「ログインできた」と言えない。
+     *
+     * <p>ログインしていなくても PHPSESSID は発行されるので、
+     * 取った Cookie で ?ajax=whoami を叩いて 200 が返ることまで確かめる。
+     */
     private void grabCookie(String url) {
         String c = CookieManager.getInstance().getCookie(url);
         if (TextUtils.isEmpty(c)) {
             return;
         }
+        if (checking) {
+            return;
+        }
+        checking = true;
         ServerConfig.setCookie(this, c);
-        Toast.makeText(this, R.string.login_done, Toast.LENGTH_SHORT).show();
-        finish();
+        status.setText(R.string.login_checking);
+        new Thread(() -> {
+            final boolean okNow = ScanPush.verifyLogin(LoginActivity.this);
+            runOnUiThread(() -> {
+                checking = false;
+                if (okNow) {
+                    Toast.makeText(this, R.string.login_done, Toast.LENGTH_SHORT).show();
+                    finish();
+                } else {
+                    // まだログイン前（PHPSESSID だけ発行された状態）。画面はそのまま
+                    status.setText(R.string.login_not_yet);
+                }
+            });
+        }).start();
     }
 
     @Override

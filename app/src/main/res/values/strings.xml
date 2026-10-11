@@ -25,17 +25,9 @@
 
     <!-- ===== 棚卸: 版と棚の設定 ===== -->
     <string name="setup_title">部署・棚卸日・棚名</string>
-    <string name="setup_note">読む前にこの3つを決めます。棚卸日は Web の版と同じにしてください。違うと読んでもどこにも出てきません。</string>
-    <string name="setup_pst">部署コード</string>
-    <string name="setup_pst_hint">例 3（YOKOTE）</string>
-    <string name="setup_ymd">棚卸日（版）</string>
-    <string name="setup_ymd_hint">2026-09-05</string>
-    <string name="setup_today">今日</string>
     <string name="setup_tana">棚名</string>
     <string name="setup_tana_hint">例 A-12</string>
     <string name="setup_save">この設定で読みはじめる</string>
-    <string name="setup_err_pst">★ 部署コードを入れてください</string>
-    <string name="setup_err_ymd">★ 棚卸日を 2026-09-05 の形で入れてください</string>
     <string name="setup_err_tana">★ 棚名を入れてください</string>
     <string name="setup_warn_ymd">★ 棚卸日が今日から %1$d 日離れています。合っていますか</string>
     <string name="setup_ok">OK  %1$s\nこの棚で読んだ件数: %2$d 件</string>
@@ -84,4 +76,60 @@
     <string name="lookup_result">%1$s　%2$s</string>
     <string name="lookup_dup">★ この版で既に読まれています: %1$s</string>
     <string name="lookup_suggest">桁落ちの候補: %1$s</string>
-    <string name="scan_confirming">%1$s … もう一度読めたら確定します</string></resources>
+    <!-- ★「確定」は skt_tbl へ移す確定処理を指す言葉なので、ここでは使わない（紛らわしい） -->
+    <string name="scan_confirming">%1$s … もう一度読めたら記録します（読み間違い防止）</string>
+    <!-- 版の選択・送信・まとめて消す（2026-10-11） -->
+    <string name="setup_note">読む前にこの3つを決めます。版はサーバにあるものから選びます（端末からは作れません）。</string>
+    <string name="setup_ver">版（部署 × 棚卸日）</string>
+    <string name="setup_ver_unset">まだ選んでいません</string>
+    <string name="setup_pick_ver">サーバから版を選ぶ</string>
+    <string name="setup_ver_loading">版の一覧を取っています…</string>
+    <string name="setup_ver_pick">版を選んでください</string>
+    <string name="setup_ver_pick_cache">版を選んでください（前に取った一覧）</string>
+    <string name="setup_ver_none">版を取れませんでした: %1$s</string>
+    <string name="setup_ver_need_login">先に「ログイン」してください</string>
+    <string name="setup_err_ver">★ 版を選んでください</string>
+    <string name="setup_tnt">担当者コード（棚卸をする人）</string>
+    <string name="setup_tnt_hint">例 162</string>
+    <string name="setup_err_tnt">★ 担当者コードを入れてください</string>
+
+    <string name="list_send">送信</string>
+    <string name="list_send_n">送信（未送信 %1$d 件）</string>
+    <string name="list_sending">送信中…</string>
+    <string name="list_send_title">%1$d 件を送ります</string>
+    <string name="list_send_note">棚ごとに分けて送ります。送れた分だけ「送信済」になります。</string>
+    <string name="list_send_ok">送る</string>
+    <string name="list_send_result">送信の結果</string>
+    <string name="list_send_done">%1$d 棚 / %2$d 件を登録しました。失敗 %3$d 棚。</string>
+    <string name="list_send_need_login">ログインが切れました。「ログイン」からやり直してください。</string>
+    <string name="list_send_offline">つながりません。電波が戻ってからもう一度送ってください。</string>
+    <string name="list_nothing_unsent">未送信のものがありません</string>
+    <string name="list_need_tnt">先に「設定」で担当者コードを入れてください</string>
+
+    <string name="list_clear">まとめて消す</string>
+    <string name="list_clear_title">まとめて消す</string>
+    <string name="list_clear_sent">送信済みを消す（%1$d 件）</string>
+    <string name="list_clear_shelf">この棚だけ消す（%1$s・%2$d 件）</string>
+    <string name="list_clear_all">全部消す（%1$d 件）</string>
+    <string name="list_clear_confirm">%1$s
+
+%2$d 件を消します。元に戻せません。</string>
+    <string name="list_clear_warn_unsent">★ 未送信が %1$d 件あります。消すと、読んだ記録はどこにも残りません。</string>
+    <string name="list_clear_no_setting">先に「設定」で版と棚名を決めてください</string>
+    <string name="list_cleared">%1$d 件を消しました</string>
+
+    <!-- 棚と担当者を一覧から選ぶ（2026-10-11） -->
+    <string name="setup_pick_tana">すでにある棚から選ぶ</string>
+    <string name="setup_pick_tnt">担当者を一覧から選ぶ</string>
+    <string name="setup_pick_tana_title">この版にある棚</string>
+    <string name="setup_pick_tnt_title">担当者を選ぶ</string>
+    <string name="setup_pick_need_ver">先に版を選んでください</string>
+    <string name="setup_shelf_none">この版にはまだ棚がありません。棚名を入力してください</string>
+    <string name="setup_shelf_locked">%1$s は確定済みなので追加できません。別の棚名にしてください</string>
+    <string name="setup_shelf_picked">%1$s を選びました（いま %2$d 件）。同じ棚に追加されます</string>
+    <string name="setup_staff_none">担当者の一覧を取れませんでした: %1$s</string>
+    <string name="setup_loading">取得中…</string>
+    <string name="login_checking">ログインを確かめています…</string>
+    <string name="login_not_yet">ログインできていません</string>
+    <string name="scan_btn_login_check">確認中</string>
+</resources>

@@ -244,6 +244,81 @@ public class ScanStore extends SQLiteOpenHelper {
         return out;
     }
 
+    /** 未送信のかたまり（棚ごと）。送信はこの単位で行う */
+    public static class Shelf {
+        public int pst;
+        public String ymd;
+        public String tana;
+        public int cnt;
+        public List<Long> ids = new ArrayList<>();
+        public List<String> tags = new ArrayList<>();
+
+        public String label() {
+            return "部署" + pst + " / " + ymd + " / " + tana + "　" + cnt + " 件";
+        }
+
+        /** サーバへ送る形（改行区切り） */
+        public String tagsText() {
+            StringBuilder b = new StringBuilder();
+            for (String t : tags) {
+                b.append(t).append(System.lineSeparator());
+            }
+            return b.toString();
+        }
+    }
+
+    /** 未送信を棚ごとにまとめる */
+    public List<Shelf> unsentShelves() {
+        List<Shelf> out = new ArrayList<>();
+        Cursor c = getReadableDatabase().rawQuery(
+                "SELECT " + C_ID + "," + C_TAG + "," + C_PST + "," + C_YMD + "," + C_TANA
+                        + " FROM " + T + " WHERE " + C_SENT_AT + " IS NULL"
+                        + " ORDER BY " + C_PST + "," + C_YMD + "," + C_TANA + "," + C_ID, null);
+        try {
+            Shelf cur = null;
+            while (c.moveToNext()) {
+                long id = c.getLong(0);
+                String tag = c.getString(1);
+                int pst = c.getInt(2);
+                String ymd = c.getString(3);
+                String tana = c.getString(4);
+                if (cur == null || cur.pst != pst || !cur.ymd.equals(ymd) || !cur.tana.equals(tana)) {
+                    cur = new Shelf();
+                    cur.pst = pst;
+                    cur.ymd = ymd;
+                    cur.tana = tana;
+                    out.add(cur);
+                }
+                cur.ids.add(id);
+                cur.tags.add(tag);
+                cur.cnt++;
+            }
+        } finally {
+            c.close();
+        }
+        return out;
+    }
+
+    /** 送信済みを全部消す */
+    public int deleteSent() {
+        return getWritableDatabase().delete(T, C_SENT_AT + " IS NOT NULL", null);
+    }
+
+    /** この棚の分を全部消す */
+    public int deleteShelf(ScanSetting s) {
+        if (s == null || !s.isReady()) {
+            return 0;
+        }
+        return getWritableDatabase().delete(T,
+                C_PST + "=? AND " + C_YMD + "=? AND " + C_TANA + "=?",
+                new String[]{String.valueOf(s.pst), s.ymd, s.tana});
+    }
+
+    /** 全部消す */
+    public int deleteAll() {
+        return getWritableDatabase().delete(T, null, null);
+    }
+
     /** 1件消す（読み間違いを消すため） */
     public int delete(long id) {
         return getWritableDatabase().delete(T, C_ID + "=?", new String[]{String.valueOf(id)});

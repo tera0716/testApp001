@@ -35,6 +35,10 @@ public class TagNormalizerTest {
 
     @Test
     public void NW7のスタートストップ文字を落とす() {
+        // ★ 当社の値札は A と A で挟む形（2026-10-11 に確認）
+        assertEquals("14063118", TagNormalizer.normalize("A14063118A"));
+        assertEquals("90954088", TagNormalizer.normalize("A90954088A"));
+        assertEquals("800299343", TagNormalizer.normalize("A800299343A"));
         assertEquals("14063118", TagNormalizer.normalize("A14063118B"));
         assertEquals("14063118", TagNormalizer.normalize("a14063118a"));
         assertEquals("14063118", TagNormalizer.normalize("D14063118C"));

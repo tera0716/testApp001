@@ -24,6 +24,7 @@ public class ScanSetting {
     private static final String K_PST = "pst";
     private static final String K_YMD = "ymd";
     private static final String K_TANA = "tana";
+    private static final String K_TNT = "tnt";
 
     private static final Pattern YMD = Pattern.compile("^(\\d{4})-(\\d{2})-(\\d{2})$");
 
@@ -33,6 +34,8 @@ public class ScanSetting {
     public String ymd = "";
     /** 棚名 */
     public String tana = "";
+    /** 棚卸をする人（担当者コード）。サーバへ送るときに要る */
+    public int tnt;
 
     public static ScanSetting load(Context c) {
         SharedPreferences p = c.getApplicationContext().getSharedPreferences(PREF, Context.MODE_PRIVATE);
@@ -40,6 +43,7 @@ public class ScanSetting {
         s.pst = p.getInt(K_PST, 0);
         s.ymd = p.getString(K_YMD, "");
         s.tana = p.getString(K_TANA, "");
+        s.tnt = p.getInt(K_TNT, 0);
         return s;
     }
 
@@ -49,20 +53,22 @@ public class ScanSetting {
                 .putInt(K_PST, pst)
                 .putString(K_YMD, ymd == null ? "" : ymd.trim())
                 .putString(K_TANA, tana == null ? "" : tana.trim())
+                .putInt(K_TNT, tnt)
                 .apply();
     }
 
     /** 3つとも入っているか */
     public boolean isReady() {
-        return pst > 0 && isValidYmd(ymd) && !TextUtils.isEmpty(tana) && !tana.trim().isEmpty();
+        return pst > 0 && isValidYmd(ymd) && !TextUtils.isEmpty(tana)
+                && !tana.trim().isEmpty() && tnt > 0;
     }
 
     /** 画面に出す1行 */
     public String label() {
         if (!isReady()) {
-            return "部署・棚卸日・棚名が未設定";
+            return "版・棚名・担当が未設定";
         }
-        return "部署" + pst + " / " + ymd + " / " + tana;
+        return "部署" + pst + " / " + ymd + " / " + tana + " / 担当" + tnt;
     }
 
     public static boolean isValidYmd(String s) {

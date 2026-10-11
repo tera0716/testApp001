@@ -17,10 +17,15 @@ public class ServerConfig {
     private static final String PREF = "server";
     private static final String K_BASE = "base";
     private static final String K_COOKIE = "cookie";
+    private static final String K_VERS = "versions";
+    private static final String K_VERIFIED = "verified";
 
     /** 既定の置き場所（本番） */
     public static final String DEFAULT_BASE =
             "https://www.azalea-system.com/azalea_pos/kanri/test_dir/";
+
+    /** 端末向けの口（版の一覧・一括登録）。既存の画面とは別ファイル */
+    public static final String PAGE_API = "20261011_skt_api.php";
 
     /** 棚卸チェック画面（照会の口もここにある） */
     public static final String PAGE_MAIN = "20260221_skt_tmp_tbl_2.php";
@@ -56,6 +61,41 @@ public class ServerConfig {
                 + "&tag=" + android.net.Uri.encode(tag);
     }
 
+    /** 版の一覧の口 */
+    public static String versionsUrl(Context c) {
+        return base(c) + PAGE_API + "?ajax=versions";
+    }
+
+    /** その版にすでにある棚 */
+    public static String shelvesUrl(Context c, int pst, String ymd) {
+        return base(c) + PAGE_API + "?ajax=shelves&pst=" + pst
+                + "&ymd=" + android.net.Uri.encode(ymd);
+    }
+
+    /** 担当者の一覧 */
+    public static String staffUrl(Context c, int pst) {
+        return base(c) + PAGE_API + "?ajax=staff&pst=" + pst;
+    }
+
+    /** ログインできているかの確認 */
+    public static String whoamiUrl(Context c) {
+        return base(c) + PAGE_API + "?ajax=whoami";
+    }
+
+    /** 一括登録の口 */
+    public static String pushUrl(Context c) {
+        return base(c) + PAGE_API + "?ajax=push";
+    }
+
+    /** 取ってきた版の一覧を覚えておく（電波が無いときのため） */
+    public static String versionsCache(Context c) {
+        return p(c).getString(K_VERS, "");
+    }
+
+    public static void setVersionsCache(Context c, String json) {
+        p(c).edit().putString(K_VERS, json == null ? "" : json).apply();
+    }
+
     public static String loginUrl(Context c) {
         return base(c) + PAGE_LOGIN + "?redirect=" + android.net.Uri.encode(PAGE_MAIN);
     }
@@ -77,7 +117,23 @@ public class ServerConfig {
         return !TextUtils.isEmpty(cookie(c));
     }
 
+    /**
+     * ★ ログインできていると「確かめた」か。
+     *
+     * <p>Cookie の有無で判断してはいけない。
+     * <b>ログインしていなくても PHPSESSID は発行される</b>ので、
+     * Cookie があるだけで「ログイン済」と出てしまう（実際にそうなった）。
+     * ?ajax=whoami が 200 を返したときだけ true にする。
+     */
+    public static boolean isVerified(Context c) {
+        return p(c).getBoolean(K_VERIFIED, false) && hasCookie(c);
+    }
+
+    public static void setVerified(Context c, boolean v) {
+        p(c).edit().putBoolean(K_VERIFIED, v).apply();
+    }
+
     public static void clearCookie(Context c) {
-        p(c).edit().remove(K_COOKIE).apply();
+        p(c).edit().remove(K_COOKIE).remove(K_VERIFIED).apply();
     }
 }

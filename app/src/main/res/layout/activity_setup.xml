@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 読む前に「部署・棚卸日・棚名」を決める画面 -->
+<!-- 読む前に「版（既存から選ぶ）・棚名・担当」を決める画面 -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/setup_root"
     android:layout_width="match_parent"
@@ -27,58 +27,35 @@
             android:textSize="13sp"
             android:paddingBottom="16dp" />
 
+        <!-- 版（サーバにある版から選ぶ。端末からは作らない） -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/setup_pst"
+            android:text="@string/setup_ver"
             android:textSize="14sp" />
 
-        <EditText
-            android:id="@+id/in_pst"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="number"
-            android:textSize="20sp"
-            android:hint="@string/setup_pst_hint"
-            android:autofillHints=""
-            android:importantForAutofill="no" />
-
         <TextView
+            android:id="@+id/ver_now"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/setup_ymd"
-            android:textSize="14sp"
-            android:paddingTop="12dp" />
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp" />
 
-        <LinearLayout
+        <Button
+            android:id="@+id/btn_pick_ver"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:text="@string/setup_pick_ver" />
 
-            <EditText
-                android:id="@+id/in_ymd"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:inputType="date"
-                android:textSize="20sp"
-                android:hint="@string/setup_ymd_hint"
-                android:autofillHints=""
-                android:importantForAutofill="no" />
-
-            <Button
-                android:id="@+id/btn_today"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/setup_today" />
-        </LinearLayout>
-
+        <!-- 棚名 -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/setup_tana"
             android:textSize="14sp"
-            android:paddingTop="12dp" />
+            android:paddingTop="16dp" />
 
         <EditText
             android:id="@+id/in_tana"
@@ -89,6 +66,36 @@
             android:hint="@string/setup_tana_hint"
             android:autofillHints=""
             android:importantForAutofill="no" />
+
+        <Button
+            android:id="@+id/btn_pick_tana"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/setup_pick_tana" />
+
+        <!-- 担当者 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/setup_tnt"
+            android:textSize="14sp"
+            android:paddingTop="12dp" />
+
+        <EditText
+            android:id="@+id/in_tnt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="number"
+            android:textSize="20sp"
+            android:hint="@string/setup_tnt_hint"
+            android:autofillHints=""
+            android:importantForAutofill="no" />
+
+        <Button
+            android:id="@+id/btn_pick_tnt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/setup_pick_tnt" />
 
         <TextView
             android:id="@+id/setup_status"

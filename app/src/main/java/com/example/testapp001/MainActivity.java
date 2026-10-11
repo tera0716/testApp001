@@ -180,10 +180,30 @@ public class MainActivity extends AppCompatActivity {
         pendingTag = null;
         pendingCount = 0;
         refreshScanHeader();
-        if (btnLogin != null) {
-            btnLogin.setText(ServerConfig.hasCookie(this)
-                    ? R.string.scan_btn_logged_in : R.string.scan_btn_login);
+        refreshLoginButton();
+    }
+
+    /**
+     * ★ ログインできているかを確かめてからボタンに出す。
+     *
+     * <p>Cookie の有無で判断してはいけない。
+     * <b>ログインしていなくても PHPSESSID は発行される</b>ので、
+     * 「ログイン済」と誤って出ていた（実際にそうなった）。
+     */
+    private void refreshLoginButton() {
+        if (btnLogin == null) {
+            return;
         }
+        if (!ServerConfig.hasCookie(this)) {
+            btnLogin.setText(R.string.scan_btn_login);
+            return;
+        }
+        btnLogin.setText(R.string.scan_btn_login_check);
+        lookupExecutor.execute(() -> {
+            final boolean okNow = ScanPush.verifyLogin(MainActivity.this);
+            runOnUiThread(() -> btnLogin.setText(
+                    okNow ? R.string.scan_btn_logged_in : R.string.scan_btn_login));
+        });
     }
 
     /** ヘッダー（版と棚、この棚で読んだ件数）と一覧ボタンの件数を出し直す */
