@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 端末に溜まっている読み取りの一覧 -->
+<!-- 端末に溜まっている読み取り。棚の一覧 → 棚の中身 の2段で見る -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/list_root"
     android:layout_width="match_parent"
@@ -7,14 +7,22 @@
     android:orientation="vertical"
     android:padding="12dp">
 
+    <!-- 棚の中を見ているときだけ出る -->
+    <Button
+        android:id="@+id/btn_back"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/list_back"
+        android:visibility="gone" />
+
     <TextView
         android:id="@+id/list_summary"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textSize="15sp"
+        android:paddingTop="4dp"
         android:paddingBottom="8dp" />
 
-    <!-- 送信（溜めた分をサーバへ） -->
     <Button
         android:id="@+id/btn_send"
         android:layout_width="match_parent"
@@ -34,7 +42,7 @@
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:text="@string/list_filter_unsent" />
+            android:text="@string/list_filter_all_now" />
 
         <Button
             android:id="@+id/btn_copy"
@@ -52,9 +60,10 @@
     </LinearLayout>
 
     <TextView
+        android:id="@+id/list_hint"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/list_hint"
+        android:text="@string/list_hint_groups"
         android:textSize="12sp"
         android:paddingBottom="6dp" />
 

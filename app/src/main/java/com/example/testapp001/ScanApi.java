@@ -57,7 +57,12 @@ public class ScanApi {
         /** ログインが必要（Cookie が無い・切れた） */
         public boolean needLogin = false;
 
-        /** 商品情報を1行にする */
+        /** 上代を「12,345」の形で（0 なら空） */
+        public String jdiText() {
+            return jdi > 0 ? String.format(java.util.Locale.JAPAN, "%,d", jdi) : "";
+        }
+
+        /** 商品情報（ブランド / アイテム / 品番 / 色 / サイズ）。上代は含めない */
         public String goodsLine() {
             StringBuilder b = new StringBuilder();
             if (!TextUtils.isEmpty(brd)) {
@@ -85,10 +90,7 @@ public class ScanApi {
                 }
                 b.append(c);
             }
-            if (jdi > 0) {
-                b.append(b.length() > 0 ? "　" : "").append("上代 ")
-                        .append(String.format(java.util.Locale.JAPAN, "%,d", jdi));
-            }
+            // ★ 上代は一覧の1行目に出すので、ここには入れない
             return b.toString();
         }
 

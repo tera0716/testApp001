@@ -334,6 +334,9 @@ public class MainActivity extends AppCompatActivity {
 
         StringBuilder b = new StringBuilder();
         b.append(getString(R.string.lookup_result, tag, r.chk));
+        if (!r.jdiText().isEmpty()) {
+            b.append("　上代 ").append(r.jdiText());
+        }
         String goods = r.goodsLine();
         if (!goods.isEmpty()) {
             b.append(NL).append(goods);
@@ -362,7 +365,7 @@ public class MainActivity extends AppCompatActivity {
 
         // 一覧でも見えるように、照会の結果を残す
         if (rowId > 0) {
-            scanStore.setLookup(rowId, r.chk, goods);
+            scanStore.setLookup(rowId, r.chk, goods, r.jdi);
         }
     }
 

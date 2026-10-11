@@ -28,7 +28,7 @@ import java.util.Locale;
 public class ScanStore extends SQLiteOpenHelper {
 
     private static final String DB_NAME = "tanaoroshi.db";
-    private static final int DB_VERSION = 2;
+    private static final int DB_VERSION = 4;
 
     public static final String T = "scan";
     public static final String C_ID = "_id";
@@ -40,7 +40,9 @@ public class ScanStore extends SQLiteOpenHelper {
     public static final String C_READ_AT = "read_at";// 読んだ時刻
     public static final String C_SENT_AT = "sent_at";// 送った時刻（null なら未送信）
     public static final String C_CHK = "chk";        // 照会の判定（正常 / N_在庫 など）
-    public static final String C_INFO = "info";      // 照会で分かった商品情報（1行）
+    public static final String C_INFO = "info";      // 照会で分かった商品情報（ブランド/アイテム/品番/色/サイズ）
+    public static final String C_JDI = "jdi";        // 上代（1行目に出すので別の列にする）
+    public static final String C_MEMO = "memo";      // その場で書くメモ（いまは端末内だけ）
 
     private static final SimpleDateFormat TS =
             new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.JAPAN);
@@ -57,6 +59,8 @@ public class ScanStore extends SQLiteOpenHelper {
         public String sentAt;
         public String chk;
         public String info;
+        public int jdi;
+        public String memo;
 
         public boolean isSent() {
             return !TextUtils.isEmpty(sentAt);
@@ -91,7 +95,9 @@ public class ScanStore extends SQLiteOpenHelper {
                 + C_READ_AT + " TEXT NOT NULL, "
                 + C_SENT_AT + " TEXT, "
                 + C_CHK + " TEXT, "
-                + C_INFO + " TEXT)");
+                + C_INFO + " TEXT, "
+                + C_JDI + " INTEGER, "
+                + C_MEMO + " TEXT)");
         // 同じ棚の重複を速く調べるため
         db.execSQL("CREATE INDEX idx_scan_shelf ON " + T
                 + " (" + C_PST + ", " + C_YMD + ", " + C_TANA + ", " + C_TAG + ")");
@@ -106,6 +112,14 @@ public class ScanStore extends SQLiteOpenHelper {
             db.execSQL("ALTER TABLE " + T + " ADD COLUMN " + C_CHK + " TEXT");
             db.execSQL("ALTER TABLE " + T + " ADD COLUMN " + C_INFO + " TEXT");
         }
+        if (oldV < 3) {
+            // 上代は1行目に出すので、商品情報とは別の列にする
+            db.execSQL("ALTER TABLE " + T + " ADD COLUMN " + C_JDI + " INTEGER");
+        }
+        if (oldV < 4) {
+            // その場で書くメモ。★いまは端末内だけ。サーバへ運ぶのは別途
+            db.execSQL("ALTER TABLE " + T + " ADD COLUMN " + C_MEMO + " TEXT");
+        }
     }
 
     /** {@link #save} で入れた行の id（照会の結果を後から書き込むために使う） */
@@ -116,13 +130,14 @@ public class ScanStore extends SQLiteOpenHelper {
     }
 
     /** 照会の結果を書き込む */
-    public void setLookup(long id, String chk, String info) {
+    public void setLookup(long id, String chk, String info, int jdi) {
         if (id <= 0) {
             return;
         }
         ContentValues v = new ContentValues();
         v.put(C_CHK, chk);
         v.put(C_INFO, info);
+        v.put(C_JDI, jdi);
         getWritableDatabase().update(T, v, C_ID + "=?", new String[]{String.valueOf(id)});
     }
 
@@ -217,7 +232,7 @@ public class ScanStore extends SQLiteOpenHelper {
         List<Row> out = new ArrayList<>();
         String sql = "SELECT " + C_ID + "," + C_TAG + "," + C_RAW + "," + C_PST + ","
                 + C_YMD + "," + C_TANA + "," + C_READ_AT + "," + C_SENT_AT + ","
-                + C_CHK + "," + C_INFO
+                + C_CHK + "," + C_INFO + "," + C_JDI + "," + C_MEMO
                 + " FROM " + T
                 + (unsentOnly ? " WHERE " + C_SENT_AT + " IS NULL" : "")
                 + " ORDER BY " + C_ID + " DESC"
@@ -236,6 +251,8 @@ public class ScanStore extends SQLiteOpenHelper {
                 r.sentAt = c.getString(7);
                 r.chk = c.getString(8);
                 r.info = c.getString(9);
+                r.jdi = c.getInt(10);
+                r.memo = c.getString(11);
                 out.add(r);
             }
         } finally {
@@ -252,6 +269,8 @@ public class ScanStore extends SQLiteOpenHelper {
         public int cnt;
         public List<Long> ids = new ArrayList<>();
         public List<String> tags = new ArrayList<>();
+        /** tags と同じ並び。メモが無ければ空文字 */
+        public List<String> memos = new ArrayList<>();
 
         public String label() {
             return "部署" + pst + " / " + ymd + " / " + tana + "　" + cnt + " 件";
@@ -265,6 +284,38 @@ public class ScanStore extends SQLiteOpenHelper {
             }
             return b.toString();
         }
+
+        /**
+         * メモをサーバへ送る形にする。「タグ番号&lt;TAB&gt;メモ」を改行で並べる。
+         * メモが1つも無ければ空文字（サーバ側は省略可）。
+         */
+        public String memosText() {
+            StringBuilder b = new StringBuilder();
+            for (int i = 0; i < tags.size() && i < memos.size(); i++) {
+                String m = memos.get(i);
+                if (m == null) {
+                    continue;
+                }
+                // ★ タブと改行が混ざるとほどけなくなるので落とす
+                m = m.replace("\t", " ").replace("\r", " ").replace("\n", " ").trim();
+                if (m.isEmpty()) {
+                    continue;
+                }
+                b.append(tags.get(i)).append('\t').append(m).append(System.lineSeparator());
+            }
+            return b.toString();
+        }
+
+        /** メモの数 */
+        public int memoCount() {
+            int n = 0;
+            for (String m : memos) {
+                if (m != null && !m.trim().isEmpty()) {
+                    n++;
+                }
+            }
+            return n;
+        }
     }
 
     /** 未送信を棚ごとにまとめる */
@@ -272,6 +323,7 @@ public class ScanStore extends SQLiteOpenHelper {
         List<Shelf> out = new ArrayList<>();
         Cursor c = getReadableDatabase().rawQuery(
                 "SELECT " + C_ID + "," + C_TAG + "," + C_PST + "," + C_YMD + "," + C_TANA
+                        + "," + C_MEMO
                         + " FROM " + T + " WHERE " + C_SENT_AT + " IS NULL"
                         + " ORDER BY " + C_PST + "," + C_YMD + "," + C_TANA + "," + C_ID, null);
         try {
@@ -291,12 +343,109 @@ public class ScanStore extends SQLiteOpenHelper {
                 }
                 cur.ids.add(id);
                 cur.tags.add(tag);
+                cur.memos.add(c.getString(5));
                 cur.cnt++;
             }
         } finally {
             c.close();
         }
         return out;
+    }
+
+    /** 棚のまとまり（部署 × 棚卸日 × 棚名）。一覧の1段目に出す */
+    public static class Group {
+        public int pst;
+        public String ymd;
+        public String tana;
+        public int total;
+        public int unsent;
+        public String last = "";
+
+        public String key() {
+            return pst + "|" + ymd + "|" + tana;
+        }
+    }
+
+    /** 棚のまとまりを、最後に読んだ順（新しい順）で返す */
+    public List<Group> groups(boolean unsentOnly) {
+        List<Group> out = new ArrayList<>();
+        Cursor c = getReadableDatabase().rawQuery(
+                "SELECT " + C_PST + "," + C_YMD + "," + C_TANA
+                        + ", count(*)"
+                        + ", sum(CASE WHEN " + C_SENT_AT + " IS NULL THEN 1 ELSE 0 END)"
+                        + ", max(" + C_READ_AT + ")"
+                        + " FROM " + T
+                        + (unsentOnly ? " WHERE " + C_SENT_AT + " IS NULL" : "")
+                        + " GROUP BY " + C_PST + "," + C_YMD + "," + C_TANA
+                        + " ORDER BY max(" + C_ID + ") DESC", null);
+        try {
+            while (c.moveToNext()) {
+                Group g = new Group();
+                g.pst = c.getInt(0);
+                g.ymd = c.getString(1);
+                g.tana = c.getString(2);
+                g.total = c.getInt(3);
+                g.unsent = c.getInt(4);
+                g.last = c.getString(5);
+                out.add(g);
+            }
+        } finally {
+            c.close();
+        }
+        return out;
+    }
+
+    /** ある棚の中身を、読んだ順（新しい順）で返す */
+    public List<Row> listShelf(int pst, String ymd, String tana, boolean unsentOnly, int limit) {
+        List<Row> out = new ArrayList<>();
+        String sql = "SELECT " + C_ID + "," + C_TAG + "," + C_RAW + "," + C_PST + ","
+                + C_YMD + "," + C_TANA + "," + C_READ_AT + "," + C_SENT_AT + ","
+                + C_CHK + "," + C_INFO + "," + C_JDI + "," + C_MEMO
+                + " FROM " + T
+                + " WHERE " + C_PST + "=? AND " + C_YMD + "=? AND " + C_TANA + "=?"
+                + (unsentOnly ? " AND " + C_SENT_AT + " IS NULL" : "")
+                + " ORDER BY " + C_ID + " DESC"
+                + (limit > 0 ? " LIMIT " + limit : "");
+        Cursor c = getReadableDatabase().rawQuery(sql,
+                new String[]{String.valueOf(pst), ymd, tana});
+        try {
+            while (c.moveToNext()) {
+                Row r = new Row();
+                r.id = c.getLong(0);
+                r.tag = c.getString(1);
+                r.raw = c.getString(2);
+                r.pst = c.getInt(3);
+                r.ymd = c.getString(4);
+                r.tana = c.getString(5);
+                r.readAt = c.getString(6);
+                r.sentAt = c.getString(7);
+                r.chk = c.getString(8);
+                r.info = c.getString(9);
+                r.jdi = c.getInt(10);
+                r.memo = c.getString(11);
+                out.add(r);
+            }
+        } finally {
+            c.close();
+        }
+        return out;
+    }
+
+    /** ある棚の未送信だけを、送信できる形で返す（無ければ null） */
+    public Shelf unsentShelf(int pst, String ymd, String tana) {
+        for (Shelf s : unsentShelves()) {
+            if (s.pst == pst && s.ymd.equals(ymd) && s.tana.equals(tana)) {
+                return s;
+            }
+        }
+        return null;
+    }
+
+    /** ある棚の分を全部消す */
+    public int deleteShelfKey(int pst, String ymd, String tana) {
+        return getWritableDatabase().delete(T,
+                C_PST + "=? AND " + C_YMD + "=? AND " + C_TANA + "=?",
+                new String[]{String.valueOf(pst), ymd, tana});
     }
 
     /** 送信済みを全部消す */
@@ -317,6 +466,13 @@ public class ScanStore extends SQLiteOpenHelper {
     /** 全部消す */
     public int deleteAll() {
         return getWritableDatabase().delete(T, null, null);
+    }
+
+    /** メモを書く（いまは端末内だけ） */
+    public void setMemo(long id, String memo) {
+        ContentValues v = new ContentValues();
+        v.put(C_MEMO, memo == null ? "" : memo.trim());
+        getWritableDatabase().update(T, v, C_ID + "=?", new String[]{String.valueOf(id)});
     }
 
     /** 1件消す（読み間違いを消すため） */

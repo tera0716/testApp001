@@ -98,6 +98,8 @@ public class ScanPush {
         public int ins = 0;
         public int dup = 0;
         public int stripped = 0;
+        /** サーバが受け取ったメモの数 */
+        public int memo = 0;
         public String batch = "";
         public boolean reused = false;
         public List<String> badKeta = new ArrayList<>();
@@ -395,7 +397,8 @@ public class ScanPush {
      *
      * @param tags 改行で区切ったタグ番号
      */
-    public static PushRes push(Context ctx, int pst, String ymd, String tana, int tnt, String tags) {
+    public static PushRes push(Context ctx, int pst, String ymd, String tana, int tnt,
+                               String tags, String memos) {
         PushRes r = new PushRes();
         String cookie = ServerConfig.cookie(ctx);
         if (TextUtils.isEmpty(cookie)) {
@@ -409,7 +412,9 @@ public class ScanPush {
                     + "&ymd=" + URLEncoder.encode(ymd, "UTF-8")
                     + "&tana=" + URLEncoder.encode(tana, "UTF-8")
                     + "&tnt=" + tnt
-                    + "&tags=" + URLEncoder.encode(tags, "UTF-8");
+                    + "&tags=" + URLEncoder.encode(tags, "UTF-8")
+                    // ★ メモは「タグ番号<TAB>メモ」を改行で並べた形。無ければ空で送る
+                    + "&memos=" + URLEncoder.encode(memos == null ? "" : memos, "UTF-8");
 
             con = (HttpURLConnection) new URL(ServerConfig.pushUrl(ctx)).openConnection();
             con.setRequestMethod("POST");
@@ -449,6 +454,7 @@ public class ScanPush {
             r.ins = j.optInt("ins");
             r.dup = j.optInt("dup");
             r.stripped = j.optInt("stripped");
+            r.memo = j.optInt("memo");
             r.batch = j.optString("batch", "");
             r.reused = j.optBoolean("reused");
             JSONArray bk = j.optJSONArray("bad_keta");

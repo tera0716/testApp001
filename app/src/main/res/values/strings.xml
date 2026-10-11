@@ -36,11 +36,7 @@
 
     <!-- ===== 棚卸: 溜まっている読み取り ===== -->
     <string name="list_title">溜まっている読み取り</string>
-    <string name="list_summary">全部 %1$d 件 / 未送信 %2$d 件（表示 %3$d 件）</string>
-    <string name="list_filter_unsent">未送信だけ</string>
-    <string name="list_filter_all">全部を見る</string>
     <string name="list_copy">タグ番号をコピー</string>
-    <string name="list_hint">1件を長押しすると消せます（読み間違いの取り消し）。コピーしたものは Web の「一括入力」に貼れます。</string>
     <string name="list_row">%1$s\n　部署%2$d / %3$s / %4$s / %5$s / %6$s</string>
     <string name="list_sent">送信済</string>
     <string name="list_unsent">未送信</string>
@@ -137,4 +133,28 @@
     <string name="torch_on">ライト</string>
     <string name="torch_off">ライト 消す</string>
     <string name="torch_none">この端末にはライトがありません</string>
+
+    <!-- 棚の一覧 → 棚の中身 の2段（2026-10-11） -->
+    <string name="list_back">← 棚の一覧へ</string>
+    <string name="list_hint_groups">棚を押すと中身が出ます。長押しで「送信」「消す」を選べます。</string>
+    <string name="list_hint_items">判定ごとにまとめています。1件を長押しすると消せます。</string>
+    <string name="list_summary">全部 %1$d 件 / 未送信 %2$d 件（棚 %3$d）</string>
+    <string name="list_shelf_summary">部署%1$d / %2$s / %3$s
+全 %4$d 件 / 未送信 %5$d 件（表示 %6$d）</string>
+    <string name="list_chk_group">■ %1$s　（%2$d 件）</string>
+    <string name="list_chk_none">（未照会）</string>
+    <string name="list_filter_all_now">表示: すべて</string>
+    <string name="list_filter_unsent_now">表示: 未送信だけ</string>
+    <string name="list_filter_ng_now">表示: 異常だけ</string>
+    <string name="list_send_shelf">この棚を送信（%1$d 件）</string>
+    <string name="list_shelf_open">中身を見る</string>
+    <string name="list_clear_this">この棚を消す</string>
+    <string name="list_no_info">（商品情報なし・未照会）</string>
+    <!-- 1件の長押し・メモ（2026-10-11） -->
+    <string name="row_memo">メモを書く</string>
+    <string name="row_delete">この読み取りを消す</string>
+    <string name="row_memo_title">メモ  %1$s</string>
+    <string name="row_memo_note">★ いまは端末の中だけに残ります（サーバへは送られません）。</string>
+    <string name="row_memo_hint">例: 値札が擦れている / 現物が見当たらない</string>
+    <string name="row_memo_save">保存</string>
 </resources>
