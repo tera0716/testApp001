@@ -132,4 +132,9 @@
     <string name="login_checking">ログインを確かめています…</string>
     <string name="login_not_yet">ログインできていません</string>
     <string name="scan_btn_login_check">確認中</string>
+
+    <!-- トーチ（暗い場所で読むため・2026-10-11） -->
+    <string name="torch_on">ライト</string>
+    <string name="torch_off">ライト 消す</string>
+    <string name="torch_none">この端末にはライトがありません</string>
 </resources>

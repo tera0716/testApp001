@@ -26,7 +26,9 @@ import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.camera.core.Camera;
 import androidx.camera.core.CameraSelector;
+import androidx.camera.core.TorchState;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageProxy;
 import androidx.camera.core.Preview;
@@ -91,6 +93,10 @@ public class MainActivity extends AppCompatActivity {
     /** 照会は通信するので、カメラとは別のスレッドで行う */
     private ExecutorService lookupExecutor;
 
+    /** トーチ（暗い場所で読むため）。カメラを bind したときに受け取る */
+    private Camera camera;
+    private Button btnTorch;
+
     // 同じ値が続けて読めたかを数える（分割誤読よけ）
     private String pendingTag = null;
     private int pendingCount = 0;
@@ -137,6 +143,10 @@ public class MainActivity extends AppCompatActivity {
         btnLogin = findViewById(R.id.btn_login);
         btnLogin.setOnClickListener(v -> startActivity(new Intent(this, LoginActivity.class)));
         lookupExecutor = Executors.newSingleThreadExecutor();
+
+        btnTorch = findViewById(R.id.btn_torch);
+        btnTorch.setEnabled(false);          // カメラが始まるまで押せない
+        btnTorch.setOnClickListener(v -> toggleTorch());
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -356,6 +366,43 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * トーチのボタンを使えるようにする。
+     *
+     * <p>★ 端末によってはライトが無い（前面カメラだけの機種など）。
+     * {@code hasFlashUnit()} で確かめてから出す。
+     * <p>実際の点灯状態は {@code getTorchState()} を見て合わせる。
+     * 他のアプリや OS が消すことがあるので、押した回数で覚えない。
+     */
+    private void setupTorch() {
+        if (camera == null || btnTorch == null) {
+            return;
+        }
+        if (!camera.getCameraInfo().hasFlashUnit()) {
+            btnTorch.setEnabled(false);
+            btnTorch.setText(R.string.torch_none);
+            return;
+        }
+        btnTorch.setEnabled(true);
+        camera.getCameraInfo().getTorchState().observe(this, state -> {
+            boolean on = (state != null && state == TorchState.ON);
+            btnTorch.setText(on ? R.string.torch_off : R.string.torch_on);
+        });
+    }
+
+    private void toggleTorch() {
+        if (camera == null) {
+            return;
+        }
+        if (!camera.getCameraInfo().hasFlashUnit()) {
+            Toast.makeText(this, R.string.torch_none, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Integer st = camera.getCameraInfo().getTorchState().getValue();
+        boolean on = (st != null && st == TorchState.ON);
+        camera.getCameraControl().enableTorch(!on);
+    }
+
     /** 読めたことを音と振動で伝える（倉庫では画面を見ていないことがある） */
     private void feedback(boolean ok) {
         try {
@@ -454,7 +501,8 @@ public class MainActivity extends AppCompatActivity {
                 });
 
                 cameraProvider.unbindAll();
-                cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis);
+                camera = cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis);
+                setupTorch();
 
                 barcodeResultTextView.setText(R.string.scan_barcode_prompt);
                 currentDisplayedValue = getString(R.string.scan_barcode_prompt);

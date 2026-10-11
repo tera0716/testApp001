@@ -76,6 +76,17 @@
     app:layout_constraintEnd_toEndOf="parent"
     app:layout_constraintBottom_toTopOf="@+id/goodsTextView" /> <!-- ★変更: 商品情報の上に配置 -->
 
+    <!-- 棚卸: トーチ（暗い場所で読むため）。カメラ映像の右下に重ねる -->
+    <Button
+        android:id="@+id/btn_torch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/torch_on"
+        android:textSize="16sp"
+        android:layout_margin="12dp"
+        app:layout_constraintEnd_toEndOf="@+id/previewView"
+        app:layout_constraintBottom_toBottomOf="@+id/previewView" />
+
     <!-- 棚卸: 照会で分かった商品情報（ブランド / 品番 / 色 / サイズ / 上代 と判定） -->
     <TextView
         android:id="@+id/goodsTextView"
